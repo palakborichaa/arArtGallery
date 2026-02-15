@@ -1,6 +1,8 @@
-numpy
+numpy>=2.0
 Pillow
-trimesh
+trimesh>=4.8.0
 flask
 flask-cors
+flask-sqlalchemy
 gunicorn
+requests

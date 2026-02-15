@@ -46,4 +46,17 @@ Thumbs.db
 # Vercel
 .vercel/
 .now/
-.vercel
+
+
+# SQLite DB
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend (Vite)
+frontend/node_modules/
+frontend/dist/
+
+# Uploads (if you store images/models)
+uploads/
+

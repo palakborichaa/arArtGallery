@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  ar-app:
+    build: .
+    container_name: ar-module-app
+    ports:
+      - "7861:7861"
+    volumes:
+      # Persist the SQLite database
+      - ./artwork.db:/app/artwork.db
+      # Mount images directory if you have one
+      - ./images:/app/images
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=your-production-secret-key-change-this
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7861/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Add nginx for production (uncomment if needed)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: ar-module-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #     - ./ssl:/etc/nginx/ssl
+  #   depends_on:
+  #     - ar-app
+  #   restart: unless-stopped
+
+volumes:
+  db_data:
+    driver: local
