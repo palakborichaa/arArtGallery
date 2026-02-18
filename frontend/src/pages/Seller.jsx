@@ -309,11 +309,20 @@ export default function Seller() {
             <div className="artworks-grid">
               {artworks.map((artwork) => (
                 <div key={artwork.id} className="artwork-card">
-                  <img
-                    src={`${API_BASE}/artwork/${artwork.id}/image`}
-                    alt={artwork.name}
-                    className="artwork-image"
-                  />
+                  <div className={`artwork-image-wrap ${artwork.is_sold ? "sold" : ""}`}>
+                    <img
+                      src={`${API_BASE}/artwork/${artwork.id}/image`}
+                      alt={artwork.name}
+                      className="artwork-image"
+                    />
+
+                    {artwork.is_sold && (
+                  <div className="sold-overlay">
+                  <div className="sold-stamp">SOLD</div>
+                  </div>
+                    )}
+                  </div>
+
 
                   <div className="artwork-details">
                     <div className="artwork-name">
@@ -348,25 +357,26 @@ export default function Seller() {
                     )}
 
                     <div className="artwork-actions">
-                      <button
-                        type="button"
-                        className="btn-secondary btn-small"
-                        onClick={() => openEdit(artwork)}
-                        disabled={artwork.is_sold}
-                        title={artwork.is_sold ? 'Sold artworks cannot be edited' : 'Edit'}
-                      >
-                        Edit
-                      </button>
+                    <button
+  type="button"
+  className="btn-secondary btn-small"
+  onClick={() => openEdit(artwork)}
+  disabled={artwork.is_sold}
+  title={artwork.is_sold ? "Sold artworks cannot be edited" : "Edit"}
+>
+  Edit
+</button>
 
-                      <button
-                        type="button"
-                        className="btn-danger btn-small"
-                        onClick={() => handleDelete(artwork.id, artwork.name, artwork.is_sold)}
-                        disabled={artwork.is_sold}
-                        title={artwork.is_sold ? 'Sold artworks cannot be deleted' : 'Delete'}
-                      >
-                        Delete
-                      </button>
+<button
+  type="button"
+  className="btn-danger btn-small"
+  onClick={() => handleDelete(artwork.id, artwork.name, artwork.is_sold)}
+  disabled={artwork.is_sold}
+  title={artwork.is_sold ? "Sold artworks cannot be deleted" : "Delete"}
+>
+  Delete
+</button>
+
                     </div>
 
                     {/* ✅ Sold message */}
