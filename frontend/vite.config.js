@@ -13,6 +13,8 @@ export default defineConfig({
       '/artworks': { target: 'http://127.0.0.1:5000', changeOrigin: true },
       '/artwork': { target: 'http://127.0.0.1:5000', changeOrigin: true },
       '/make-glb': { target: 'http://127.0.0.1:5000', changeOrigin: true },
+      '/seller': { target: 'http://127.0.0.1:5000', changeOrigin: true },
+
     },
   },
 });

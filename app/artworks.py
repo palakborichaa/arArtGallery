@@ -5,6 +5,7 @@ from PIL import Image
 from flask import Blueprint, request, send_file, abort, Response, jsonify
 from datetime import datetime
 
+from .auth import get_current_user
 from .extensions import db
 from .models import Artwork
 from .recommendations import recommend_similar_artworks
@@ -78,13 +79,21 @@ def make_glb():
         response = Response(status=200)
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Accept, Authorization, X-Requested-With, Origin, X-Mobile-Request, X-Connection-Type, X-Retry-Count"
+        response.headers["Access-Control-Allow-Headers"] = (
+            "Content-Type, Accept, Authorization, X-Requested-With, Origin, "
+            "X-Mobile-Request, X-Connection-Type, X-Retry-Count"
+        )
         response.headers["Access-Control-Max-Age"] = "86400"
         response.headers["Access-Control-Allow-Credentials"] = "false"
         response.headers["Content-Length"] = "0"
         return response
 
     try:
+        # ✅ get current logged-in user
+        user = get_current_user()
+        if not user:
+            return jsonify({"success": False, "error": "Not authenticated"}), 401
+
         if "image" not in request.files:
             return Response(
                 '{"success": false, "error": "No file uploaded. Please select an image file."}',
@@ -150,6 +159,7 @@ def make_glb():
             image_data=image_data,
             glb_data=glb_bytes,
             filename=f.filename,
+            user_id=user.id,  # ✅ assign owner
         )
 
         db.session.add(artwork)
@@ -168,6 +178,7 @@ def make_glb():
             mimetype="application/json",
             status=500,
         )
+
 
 @artworks_bp.route("/artwork/<int:artwork_id>/image")
 def artwork_image(artwork_id):
@@ -222,6 +233,34 @@ def list_artworks():
             "created_at": a.created_at.isoformat() if a.created_at else None,
         })
     return jsonify(data)
+    
+@artworks_bp.route("/seller/artworks", methods=["GET"])
+def seller_artworks():
+    user = get_current_user()
+    if not user:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+
+    artworks = (
+        Artwork.query
+        .filter(Artwork.user_id == user.id)
+        .order_by(Artwork.created_at.desc())
+        .all()
+    )
+
+    return jsonify([{
+        "id": a.id,
+        "name": a.name,
+        "artist": a.artist,
+        "artwork_type": a.artwork_type,
+        "price": a.price,
+        "description": a.description,
+        "year_created": a.year_created,
+        "dimensions": a.dimensions,
+        "medium": a.medium,
+        "style": a.style,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+    } for a in artworks])
+
 
 @artworks_bp.route("/api/artwork/<int:artwork_id>", methods=["PUT"])
 def update_artwork(artwork_id):

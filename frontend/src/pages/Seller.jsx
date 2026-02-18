@@ -24,9 +24,13 @@ export default function Seller() {
     setTimeout(() => setter({ type: '', msg: '' }), 5000);
   };
 
+  // ✅ Seller should load only THEIR artworks
   const loadArtworks = () => {
     setLoading(true);
-    const url = `${API_BASE}/artworks`.replace(/\/+/, '/') || '/artworks';
+
+    // changed from /artworks -> /seller/artworks
+    const url = `${API_BASE}/seller/artworks`.replace(/\/+/, '/') || '/seller/artworks';
+
     fetch(url, { credentials: 'include' })
       .then(async (res) => {
         const text = await res.text();
@@ -49,16 +53,20 @@ export default function Seller() {
     e.preventDefault();
     const form = e.target;
     const fileInput = form.image;
+
     if (!fileInput?.files?.[0]) {
       showMessage(setCreateStatus, 'Please select an image file', 'error');
       return;
     }
+
     const name = form.name.value.trim();
     if (!name) {
       showMessage(setCreateStatus, 'Artwork name is required', 'error');
       return;
     }
+
     setSubmitting(true);
+
     const formData = new FormData();
     formData.append('image', fileInput.files[0]);
     formData.append('name', name);
@@ -77,11 +85,15 @@ export default function Seller() {
         body: formData,
         credentials: 'include',
       });
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to create artwork');
+
       showMessage(setCreateStatus, 'Artwork created successfully!', 'success');
       form.reset();
       setShowCreate(false);
+
+      // reload seller artworks
       loadArtworks();
     } catch (err) {
       showMessage(setCreateStatus, err.message, 'error');
@@ -93,13 +105,17 @@ export default function Seller() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editModal) return;
+
     const form = e.target;
     const name = form.editName.value.trim();
+
     if (!name) {
       showMessage(setEditStatus, 'Artwork name is required', 'error');
       return;
     }
+
     setSubmitting(true);
+
     const payload = {
       name,
       description: form.editDescription?.value?.trim() || '',
@@ -111,6 +127,7 @@ export default function Seller() {
       medium: form.editMedium?.value || '',
       style: form.editStyle?.value || '',
     };
+
     try {
       const res = await fetch(`${API_BASE}/api/artwork/${editModal.id}`, {
         method: 'PUT',
@@ -118,8 +135,10 @@ export default function Seller() {
         credentials: 'include',
         body: JSON.stringify(payload),
       });
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to update');
+
       showMessage(setListStatus, 'Artwork updated successfully!', 'success');
       setEditModal(null);
       loadArtworks();
@@ -132,13 +151,16 @@ export default function Seller() {
 
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) return;
+
     try {
       const res = await fetch(`${API_BASE}/api/artwork/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to delete');
+
       showMessage(setListStatus, `"${name}" deleted successfully`, 'success');
       loadArtworks();
     } catch (err) {
@@ -150,47 +172,9 @@ export default function Seller() {
   const closeEdit = () => setEditModal(null);
 
   const selectOptions = {
-    artwork_type: [
-      '',
-      'painting',
-      'sculpture',
-      'photography',
-      'digital',
-      'print',
-      'mixed_media',
-      'other',
-    ],
-    medium: [
-      '',
-      'oil',
-      'acrylic',
-      'watercolor',
-      'gouache',
-      'pastel',
-      'charcoal',
-      'pencil',
-      'ink',
-      'mixed_media',
-      'photography',
-      'digital',
-      'printmaking',
-      'other',
-    ],
-    style: [
-      '',
-      'abstract',
-      'realistic',
-      'impressionist',
-      'expressionist',
-      'surrealist',
-      'cubist',
-      'minimalist',
-      'pop_art',
-      'contemporary',
-      'modern',
-      'classical',
-      'other',
-    ],
+    artwork_type: ['', 'painting', 'sculpture', 'photography', 'digital', 'print', 'mixed_media', 'other'],
+    medium: ['', 'oil', 'acrylic', 'watercolor', 'gouache', 'pastel', 'charcoal', 'pencil', 'ink', 'mixed_media', 'photography', 'digital', 'printmaking', 'other'],
+    style: ['', 'abstract', 'realistic', 'impressionist', 'expressionist', 'surrealist', 'cubist', 'minimalist', 'pop_art', 'contemporary', 'modern', 'classical', 'other'],
   };
 
   return (
@@ -214,19 +198,23 @@ export default function Seller() {
               <label htmlFor="imageFile">Artwork Image *</label>
               <input type="file" id="imageFile" name="image" accept="image/*" required />
             </div>
+
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="name">Artwork Name *</label>
                 <input type="text" id="name" name="name" placeholder="Enter artwork name" required />
               </div>
+
               <div className="form-group">
                 <label htmlFor="artist">Artist</label>
                 <input type="text" id="artist" name="artist" placeholder="Artist name" />
               </div>
+
               <div className="form-group">
                 <label htmlFor="price">Price ($)</label>
                 <input type="number" id="price" name="price" placeholder="0.00" step="0.01" min="0" />
               </div>
+
               <div className="form-group">
                 <label htmlFor="artwork_type">Type</label>
                 <select id="artwork_type" name="artwork_type">
@@ -236,10 +224,12 @@ export default function Seller() {
                   ))}
                 </select>
               </div>
+
               <div className="form-group">
                 <label htmlFor="year_created">Year Created</label>
                 <input type="number" id="year_created" name="year_created" placeholder="2025" min="1900" max="2025" />
               </div>
+
               <div className="form-group">
                 <label htmlFor="medium">Medium</label>
                 <select id="medium" name="medium">
@@ -249,10 +239,12 @@ export default function Seller() {
                   ))}
                 </select>
               </div>
+
               <div className="form-group">
                 <label htmlFor="dimensions">Dimensions</label>
                 <input type="text" id="dimensions" name="dimensions" placeholder="e.g., 24x36 inches" />
               </div>
+
               <div className="form-group">
                 <label htmlFor="style">Style</label>
                 <select id="style" name="style">
@@ -263,10 +255,12 @@ export default function Seller() {
                 </select>
               </div>
             </div>
+
             <div className="form-group">
               <label htmlFor="description">Description</label>
               <textarea id="description" name="description" placeholder="Describe your artwork..." />
             </div>
+
             <div className="form-actions">
               <button type="submit" disabled={submitting}>
                 {submitting ? 'Creating...' : 'Create Artwork'}
@@ -280,9 +274,11 @@ export default function Seller() {
 
         <div className="section">
           <div className="section-title">My Artworks</div>
+
           {listStatus.msg && (
             <div className={`status-message ${listStatus.type}`}>{listStatus.msg}</div>
           )}
+
           {loading ? (
             <div className="loading">Loading artworks...</div>
           ) : artworks.length === 0 ? (
@@ -301,6 +297,7 @@ export default function Seller() {
                   />
                   <div className="artwork-details">
                     <div className="artwork-name">{artwork.name}</div>
+
                     {artwork.artist && <div className="artwork-info">🎨 {artwork.artist}</div>}
                     {artwork.artwork_type && (
                       <div className="artwork-info">📦 {capitalizeFirst(artwork.artwork_type)}</div>
@@ -310,6 +307,7 @@ export default function Seller() {
                     {artwork.price != null && (
                       <div className="artwork-price">${Number(artwork.price).toFixed(2)}</div>
                     )}
+
                     <div className="artwork-actions">
                       <button type="button" className="btn-secondary btn-small" onClick={() => openEdit(artwork)}>
                         Edit
@@ -337,36 +335,28 @@ export default function Seller() {
               <h2 className="modal-title">Edit Artwork</h2>
               <button type="button" className="close-modal" onClick={closeEdit}>&times;</button>
             </div>
+
             {editStatus.msg && (
               <div className={`status-message ${editStatus.type}`}>{editStatus.msg}</div>
             )}
+
             <form onSubmit={handleUpdate}>
               <div className="form-grid">
                 <div className="form-group">
                   <label htmlFor="editName">Artwork Name *</label>
-                  <input
-                    type="text"
-                    id="editName"
-                    name="editName"
-                    defaultValue={editModal.name}
-                    required
-                  />
+                  <input type="text" id="editName" name="editName" defaultValue={editModal.name} required />
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editArtist">Artist</label>
                   <input type="text" id="editArtist" name="editArtist" defaultValue={editModal.artist} />
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editPrice">Price ($)</label>
-                  <input
-                    type="number"
-                    id="editPrice"
-                    name="editPrice"
-                    step="0.01"
-                    min="0"
-                    defaultValue={editModal.price}
-                  />
+                  <input type="number" id="editPrice" name="editPrice" step="0.01" min="0" defaultValue={editModal.price} />
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editArtworkType">Type</label>
                   <select id="editArtworkType" name="editArtworkType" defaultValue={editModal.artwork_type}>
@@ -376,17 +366,12 @@ export default function Seller() {
                     ))}
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editYearCreated">Year Created</label>
-                  <input
-                    type="number"
-                    id="editYearCreated"
-                    name="editYearCreated"
-                    min="1900"
-                    max="2025"
-                    defaultValue={editModal.year_created}
-                  />
+                  <input type="number" id="editYearCreated" name="editYearCreated" min="1900" max="2025" defaultValue={editModal.year_created} />
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editMedium">Medium</label>
                   <select id="editMedium" name="editMedium" defaultValue={editModal.medium}>
@@ -396,10 +381,12 @@ export default function Seller() {
                     ))}
                   </select>
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editDimensions">Dimensions</label>
                   <input type="text" id="editDimensions" name="editDimensions" defaultValue={editModal.dimensions} />
                 </div>
+
                 <div className="form-group">
                   <label htmlFor="editStyle">Style</label>
                   <select id="editStyle" name="editStyle" defaultValue={editModal.style}>
@@ -410,10 +397,12 @@ export default function Seller() {
                   </select>
                 </div>
               </div>
+
               <div className="form-group">
                 <label htmlFor="editDescription">Description</label>
                 <textarea id="editDescription" name="editDescription" defaultValue={editModal.description} />
               </div>
+
               <div className="form-actions">
                 <button type="submit" disabled={submitting}>
                   {submitting ? 'Updating...' : 'Update Artwork'}
