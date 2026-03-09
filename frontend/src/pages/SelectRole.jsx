@@ -32,12 +32,12 @@ export default function SelectRole() {
 
       <div className="select-role-container select-role-content">
         <div className="topbar">
-          <div className="brand">Art Marketplace</div>
+          <div className="brand">ArtVerse</div>
           <div className="topbar-actions">
             <button type="button" className="theme-toggle" onClick={toggleTheme}>
               {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             </button>
-            <button type="button" className="link logout-btn" onClick={logout}>
+            <button type="button" className="logout-btn" onClick={logout}>
               Logout
             </button>
           </div>
@@ -45,6 +45,8 @@ export default function SelectRole() {
 
         <div className="select-role-card">
           <h2>Choose how you want to continue</h2>
+          <p>Browse and buy, or upload and sell — switch anytime.</p>
+
           <div className="select-role-flipping-cards">
             <FlippingCard
               width={360}
@@ -65,7 +67,7 @@ export default function SelectRole() {
               }
               backContent={
                 <div className="flipping-card-back">
-                  <p>Browse curated pieces and purchase with confidence.</p>
+                  <p>Browse curated pieces and purchase with confidence. Preview any artwork in AR before you buy.</p>
                   <Link className="flipping-card-button" to="/buyer">
                     Continue as Buyer →
                   </Link>
@@ -92,7 +94,7 @@ export default function SelectRole() {
               }
               backContent={
                 <div className="flipping-card-back">
-                  <p>Upload art, set prices, and reach collectors.</p>
+                  <p>Upload artwork, set prices, and reach collectors worldwide. Automatic AR model generation included.</p>
                   <Link className="flipping-card-button" to="/seller">
                     Continue as Seller →
                   </Link>

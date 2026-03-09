@@ -1,8 +1,26 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import SharedHeader from '@/components/ui/SharedHeader';
 import '../css/ArtworkDetail.css';
 
 const API_BASE = '';
+
+function AccordionItem({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`accordion-item ${open ? 'open' : ''}`}>
+      <button
+        type="button"
+        className="accordion-trigger"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>{title}</span>
+        <span className="accordion-icon">{open ? '−' : '+'}</span>
+      </button>
+      {open && <div className="accordion-body">{children}</div>}
+    </div>
+  );
+}
 
 export default function ArtworkDetail() {
   const { id } = useParams();
@@ -21,150 +39,170 @@ export default function ArtworkDetail() {
         if (!res.ok) throw new Error('Artwork not found');
         return res.json();
       })
-      .then((data) => {
-        setArtwork(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+      .then((data) => { setArtwork(data); setLoading(false); })
+      .catch((err) => { setError(err.message); setLoading(false); });
   }, [id]);
 
   const handleViewAR = () => {
     if (artwork) {
-      const arUrl = `${API_BASE}/ar-viewer?id=${artwork.id}`;
-      window.open(arUrl, '_blank', 'width=400,height=700,menubar=no,toolbar=no,location=no,status=no,scrollbars=no');
+      window.open(
+        `${API_BASE}/ar-viewer?id=${artwork.id}`,
+        '_blank',
+        'width=400,height=700,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
+      );
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+  const formatDate = (d) =>
+    d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
-  if (loading) {
-    return (
-      <>
-        <header className="detail-header">
-          <nav className="detail-nav">
-            <div className="logo">🎨 ArtVerse</div>
-            <Link className="nav-link" to="/buyer">← Back to Gallery</Link>
-          </nav>
-        </header>
-        <div className="detail-container">
-          <div className="loading">✨ Loading artwork details...</div>
-        </div>
-      </>
-    );
-  }
+  if (loading) return (
+    <>
+      <SharedHeader page="detail" />
+      <div className="detail-body"><div className="detail-state">✨ Loading artwork…</div></div>
+    </>
+  );
 
-  if (error) {
-    return (
-      <>
-        <header className="detail-header">
-          <nav className="detail-nav">
-            <div className="logo">🎨 ArtVerse</div>
-            <Link className="nav-link" to="/buyer">← Back to Gallery</Link>
-          </nav>
-        </header>
-        <div className="detail-container">
-          <div className="error">❌ Error: {error}</div>
-        </div>
-      </>
-    );
-  }
+  if (error) return (
+    <>
+      <SharedHeader page="detail" />
+      <div className="detail-body"><div className="detail-state error">❌ {error}</div></div>
+    </>
+  );
 
   return (
     <>
-      <header className="detail-header">
-        <nav className="detail-nav">
-          <div className="logo">🎨 ArtVerse</div>
-          <div>
-            <Link className="nav-link" to="/buyer">← Back to Gallery</Link>
-            <a className="nav-link" href={`${API_BASE}/logout`}>Logout</a>
-          </div>
-        </nav>
-      </header>
+      <SharedHeader page="detail" />
 
-      <div className="detail-container">
-        <Link to="/buyer" className="back-link">
-          ← Back to Gallery
-        </Link>
+      <div className="detail-body">
+        <Link to="/buyer" className="back-link">← Back to Marketplace</Link>
 
-        <div className="artwork-detail">
-          <div className="artwork-grid">
-            <div className="artwork-image-container">
+        <div className="detail-layout">
+
+          {/* ── Left: Image ── */}
+          <div className="detail-image-col">
+            <div className="detail-image-wrap">
               <img
                 src={`${API_BASE}/artwork/${artwork.id}/image`}
                 alt={artwork.name}
-                className="artwork-image"
+                className="detail-image"
               />
-            </div>
-            <div className="artwork-info">
-              <h1 className="artwork-title">{artwork.name}</h1>
-              <div className="artwork-artist">by {artwork.artist || 'Unknown Artist'}</div>
-              <div className="artwork-price">
-                {artwork.price ? `$${Number(artwork.price).toFixed(2)}` : 'Price on request'}
-              </div>
-
-              <div className="artwork-details">
-                {artwork.artwork_type && (
-                  <div className="detail-item">
-                    <div className="detail-label">Type</div>
-                    <div className="detail-value">{artwork.artwork_type}</div>
-                  </div>
-                )}
-                {artwork.year_created && (
-                  <div className="detail-item">
-                    <div className="detail-label">Year</div>
-                    <div className="detail-value">{artwork.year_created}</div>
-                  </div>
-                )}
-                {artwork.dimensions && (
-                  <div className="detail-item">
-                    <div className="detail-label">Dimensions</div>
-                    <div className="detail-value">{artwork.dimensions}</div>
-                  </div>
-                )}
-                {artwork.medium && (
-                  <div className="detail-item">
-                    <div className="detail-label">Medium</div>
-                    <div className="detail-value">{artwork.medium}</div>
-                  </div>
-                )}
-                {artwork.style && (
-                  <div className="detail-item">
-                    <div className="detail-label">Style</div>
-                    <div className="detail-value">{artwork.style}</div>
-                  </div>
-                )}
-                <div className="detail-item">
-                  <div className="detail-label">Added</div>
-                  <div className="detail-value">{formatDate(artwork.created_at)}</div>
-                </div>
-              </div>
-
-              {artwork.description && (
-                <div className="artwork-description">
-                  <div className="description-title">Description</div>
-                  <div className="description-text">{artwork.description}</div>
+              {artwork.is_sold && (
+                <div className="detail-sold-overlay">
+                  <span className="detail-sold-stamp">SOLD</span>
                 </div>
               )}
-
-              <div className="artwork-actions">
-                <button type="button" className="btn" onClick={handleViewAR}>
-                  🥽 Experience in AR
-                </button>
-                <a href={`${API_BASE}/artwork/${artwork.id}/glb`} className="btn btn-secondary" download>
-                  📥 Download 3D Model
-                </a>
-              </div>
             </div>
+          </div>
+
+          {/* ── Right: Info ── */}
+          <div className="detail-info-col">
+
+            {/* Title & Artist */}
+            <h1 className="detail-title">{artwork.name}</h1>
+            <div className="detail-artist">
+              by <span>{artwork.artist || 'Unknown Artist'}</span>
+            </div>
+
+            <div className="detail-divider" />
+
+            {/* Metadata Strip */}
+            <div className="detail-meta-strip">
+              {artwork.dimensions && (
+                <div className="detail-meta-cell">
+                  <div className="detail-meta-label">Size</div>
+                  <div className="detail-meta-value">{artwork.dimensions}</div>
+                </div>
+              )}
+              {artwork.medium && (
+                <div className="detail-meta-cell">
+                  <div className="detail-meta-label">Medium</div>
+                  <div className="detail-meta-value" style={{ textTransform: 'capitalize' }}>{artwork.medium}</div>
+                </div>
+              )}
+              {artwork.artwork_type && (
+                <div className="detail-meta-cell">
+                  <div className="detail-meta-label">Type</div>
+                  <div className="detail-meta-value" style={{ textTransform: 'capitalize' }}>{artwork.artwork_type}</div>
+                </div>
+              )}
+              {artwork.year_created && (
+                <div className="detail-meta-cell">
+                  <div className="detail-meta-label">Year</div>
+                  <div className="detail-meta-value">{artwork.year_created}</div>
+                </div>
+              )}
+              {artwork.style && (
+                <div className="detail-meta-cell">
+                  <div className="detail-meta-label">Style</div>
+                  <div className="detail-meta-value" style={{ textTransform: 'capitalize' }}>{artwork.style}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="detail-divider" />
+
+            {/* Price & Buy */}
+            <div className="detail-price-row">
+              <div className="detail-price">
+                {artwork.price
+                  ? `$${Number(artwork.price).toFixed(2)}`
+                  : 'Price on request'}
+              </div>
+              <button
+                type="button"
+                className="detail-buy-btn"
+                disabled={artwork.is_sold || !artwork.price}
+                onClick={handleViewAR}
+              >
+                {artwork.is_sold ? 'Sold' : '🥽 View in AR'}
+              </button>
+            </div>
+
+            {!artwork.is_sold && artwork.price && (
+              <div className="detail-delivery">Delivered within 5–7 business days</div>
+            )}
+
+            {/* Accordions */}
+            <div className="detail-accordions">
+              {artwork.description && (
+                <AccordionItem title="About this Artwork">
+                  <p>{artwork.description}</p>
+                </AccordionItem>
+              )}
+
+              <AccordionItem title="View in AR">
+                <p>
+                  Use our AR viewer to place this artwork in your space before purchasing.
+                  Click the button below to open the AR experience.
+                </p>
+                <button type="button" className="accordion-action-btn" onClick={handleViewAR}>
+                  🥽 Launch AR Viewer
+                </button>
+              </AccordionItem>
+
+              <AccordionItem title="Download 3D Model">
+                <p>Download the 3D GLB file for this artwork to use in your own AR/3D projects.</p>
+                <a
+                  href={`${API_BASE}/artwork/${artwork.id}/glb`}
+                  className="accordion-action-btn"
+                  download
+                >
+                  📥 Download .glb
+                </a>
+              </AccordionItem>
+
+              <AccordionItem title="Artwork Details">
+                <div className="accordion-details-grid">
+                  {artwork.dimensions && <><span>Size</span><span>{artwork.dimensions}</span></>}
+                  {artwork.medium    && <><span>Medium</span><span style={{ textTransform:'capitalize' }}>{artwork.medium}</span></>}
+                  {artwork.style     && <><span>Style</span><span style={{ textTransform:'capitalize' }}>{artwork.style}</span></>}
+                  {artwork.year_created && <><span>Year</span><span>{artwork.year_created}</span></>}
+                  {artwork.created_at   && <><span>Listed</span><span>{formatDate(artwork.created_at)}</span></>}
+                </div>
+              </AccordionItem>
+            </div>
+
           </div>
         </div>
       </div>

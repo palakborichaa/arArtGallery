@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import SharedHeader from '@/components/ui/sharedHeader';
 import '../css/Seller.css';
+import '../css/sharedHeader.css';
 
 const API_BASE = '';
 
@@ -24,27 +26,17 @@ export default function Seller() {
     setTimeout(() => setter({ type: '', msg: '' }), 5000);
   };
 
-  // ✅ Seller should load only THEIR artworks
   const loadArtworks = () => {
     setLoading(true);
-
-    // changed from /artworks -> /seller/artworks
     const url = `${API_BASE}/seller/artworks`.replace(/\/+/, '/') || '/seller/artworks';
-
     fetch(url, { credentials: 'include' })
       .then(async (res) => {
         const text = await res.text();
         if (!res.ok) throw new Error(text || `Failed to load artworks (${res.status})`);
         return text ? JSON.parse(text) : [];
       })
-      .then((data) => {
-        setArtworks(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setListStatus({ type: 'error', msg: err.message || 'Failed to load artworks' });
-        setLoading(false);
-      });
+      .then((data) => { setArtworks(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch((err) => { setListStatus({ type: 'error', msg: err.message || 'Failed to load artworks' }); setLoading(false); });
   };
 
   useEffect(() => loadArtworks(), []);
@@ -53,20 +45,10 @@ export default function Seller() {
     e.preventDefault();
     const form = e.target;
     const fileInput = form.image;
-
-    if (!fileInput?.files?.[0]) {
-      showMessage(setCreateStatus, 'Please select an image file', 'error');
-      return;
-    }
-
+    if (!fileInput?.files?.[0]) { showMessage(setCreateStatus, 'Please select an image file', 'error'); return; }
     const name = form.name.value.trim();
-    if (!name) {
-      showMessage(setCreateStatus, 'Artwork name is required', 'error');
-      return;
-    }
-
+    if (!name) { showMessage(setCreateStatus, 'Artwork name is required', 'error'); return; }
     setSubmitting(true);
-
     const formData = new FormData();
     formData.append('image', fileInput.files[0]);
     formData.append('name', name);
@@ -78,50 +60,27 @@ export default function Seller() {
     formData.append('dimensions', form.dimensions?.value?.trim() || '');
     formData.append('medium', form.medium?.value || '');
     formData.append('style', form.style?.value || '');
-
     try {
-      const res = await fetch(`${API_BASE}/make-glb`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-
+      const res = await fetch(`${API_BASE}/make-glb`, { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to create artwork');
-
       showMessage(setCreateStatus, 'Artwork created successfully!', 'success');
       form.reset();
       setShowCreate(false);
-
-      // reload seller artworks
       loadArtworks();
     } catch (err) {
       showMessage(setCreateStatus, err.message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editModal) return;
-
-    // ❌ safety: sold artwork edit not allowed
-    if (editModal.is_sold) {
-      showMessage(setEditStatus, 'This artwork is SOLD. You cannot edit it.', 'error');
-      return;
-    }
-
+    if (editModal.is_sold) { showMessage(setEditStatus, 'This artwork is SOLD. You cannot edit it.', 'error'); return; }
     const form = e.target;
     const name = form.editName.value.trim();
-
-    if (!name) {
-      showMessage(setEditStatus, 'Artwork name is required', 'error');
-      return;
-    }
-
+    if (!name) { showMessage(setEditStatus, 'Artwork name is required', 'error'); return; }
     setSubmitting(true);
-
     const payload = {
       name,
       description: form.editDescription?.value?.trim() || '',
@@ -133,258 +92,115 @@ export default function Seller() {
       medium: form.editMedium?.value || '',
       style: form.editStyle?.value || '',
     };
-
     try {
       const res = await fetch(`${API_BASE}/api/artwork/${editModal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(payload),
       });
-
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to update');
-
       showMessage(setListStatus, 'Artwork updated successfully!', 'success');
       setEditModal(null);
       loadArtworks();
-    } catch (err) {
-      showMessage(setEditStatus, err.message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err) { showMessage(setEditStatus, err.message, 'error'); }
+    finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id, name, isSold) => {
-    // ❌ safety: sold artwork delete not allowed
-    if (isSold) {
-      showMessage(setListStatus, 'This artwork is SOLD. You cannot delete it.', 'error');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) return;
-
+    if (isSold) { showMessage(setListStatus, 'This artwork is SOLD. You cannot delete it.', 'error'); return; }
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`${API_BASE}/api/artwork/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
+      const res = await fetch(`${API_BASE}/api/artwork/${id}`, { method: 'DELETE', credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to delete');
-
       showMessage(setListStatus, `"${name}" deleted successfully`, 'success');
       loadArtworks();
-    } catch (err) {
-      showMessage(setListStatus, err.message, 'error');
-    }
+    } catch (err) { showMessage(setListStatus, err.message, 'error'); }
   };
 
   const openEdit = (artwork) => {
-    if (artwork.is_sold) {
-      showMessage(setListStatus, 'This artwork is SOLD. You cannot edit it.', 'error');
-      return;
-    }
+    if (artwork.is_sold) { showMessage(setListStatus, 'This artwork is SOLD. You cannot edit it.', 'error'); return; }
     setEditModal(artwork);
   };
 
   const closeEdit = () => setEditModal(null);
 
   const selectOptions = {
-    artwork_type: ['', 'painting', 'sculpture', 'photography', 'digital', 'print', 'mixed_media', 'other'],
-    medium: ['', 'oil', 'acrylic', 'watercolor', 'gouache', 'pastel', 'charcoal', 'pencil', 'ink', 'mixed_media', 'photography', 'digital', 'printmaking', 'other'],
-    style: ['', 'abstract', 'realistic', 'impressionist', 'expressionist', 'surrealist', 'cubist', 'minimalist', 'pop_art', 'contemporary', 'modern', 'classical', 'other'],
+    artwork_type: ['painting', 'sculpture', 'photography', 'digital', 'print', 'mixed_media', 'other'],
+    medium: ['oil', 'acrylic', 'watercolor', 'gouache', 'pastel', 'charcoal', 'pencil', 'ink', 'mixed_media', 'photography', 'digital', 'printmaking', 'other'],
+    style: ['abstract', 'realistic', 'impressionist', 'expressionist', 'surrealist', 'cubist', 'minimalist', 'pop_art', 'contemporary', 'modern', 'classical', 'other'],
   };
 
   return (
-    <div className="seller-container">
-      <header className="seller-header">
-        <h1>🎨 Seller Dashboard</h1>
-        <div className="header-actions">
-          <button type="button" onClick={() => setShowCreate(true)}>+ New Artwork</button>
-          <Link to="/select-role" className="btn-secondary">← Back</Link>
-        </div>
-      </header>
+    <>
+      <SharedHeader page="seller" />
 
-      <div className="main-content">
+      <div className="seller-body">
+        <div className="seller-title-row">
+          <h1>Seller Dashboard</h1>
+          <div className="seller-actions">
+            <button type="button" className="s-btn s-btn-primary" onClick={() => setShowCreate((v) => !v)}>
+              {showCreate ? '✕ Cancel' : '+ New Artwork'}
+            </button>
+            <Link to="/select-role" className="s-btn s-btn-secondary">← Switch Role</Link>
+          </div>
+        </div>
+
         <div className={`section create-form ${showCreate ? 'active' : ''}`}>
-          <div className="section-title">Create New Artwork</div>
-          {createStatus.msg && (
-            <div className={`status-message ${createStatus.type}`}>{createStatus.msg}</div>
-          )}
+          <div className="section-title">Upload New Artwork</div>
+          {createStatus.msg && <div className={`status-message ${createStatus.type}`}>{createStatus.msg}</div>}
           <form onSubmit={handleCreate}>
             <div className="form-group">
               <label htmlFor="imageFile">Artwork Image *</label>
               <input type="file" id="imageFile" name="image" accept="image/*" required />
             </div>
-
             <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="name">Artwork Name *</label>
-                <input type="text" id="name" name="name" placeholder="Enter artwork name" required />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="artist">Artist</label>
-                <input type="text" id="artist" name="artist" placeholder="Artist name" />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="price">Price ($)</label>
-                <input type="number" id="price" name="price" placeholder="0.00" step="0.01" min="0" />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="artwork_type">Type</label>
-                <select id="artwork_type" name="artwork_type">
-                  <option value="">Select type</option>
-                  {selectOptions.artwork_type.filter(Boolean).map((v) => (
-                    <option key={v} value={v}>{capitalizeFirst(v)}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="year_created">Year Created</label>
-                <input type="number" id="year_created" name="year_created" placeholder="2025" min="1900" max="2025" />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="medium">Medium</label>
-                <select id="medium" name="medium">
-                  <option value="">Select medium</option>
-                  {selectOptions.medium.filter(Boolean).map((v) => (
-                    <option key={v} value={v}>{capitalizeFirst(v)}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="dimensions">Dimensions</label>
-                <input type="text" id="dimensions" name="dimensions" placeholder="e.g., 24x36 inches" />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="style">Style</label>
-                <select id="style" name="style">
-                  <option value="">Select style</option>
-                  {selectOptions.style.filter(Boolean).map((v) => (
-                    <option key={v} value={v}>{capitalizeFirst(v)}</option>
-                  ))}
-                </select>
-              </div>
+              <div className="form-group"><label htmlFor="name">Artwork Name *</label><input type="text" id="name" name="name" placeholder="Enter artwork name" required /></div>
+              <div className="form-group"><label htmlFor="artist">Artist</label><input type="text" id="artist" name="artist" placeholder="Artist name" /></div>
+              <div className="form-group"><label htmlFor="price">Price ($)</label><input type="number" id="price" name="price" placeholder="0.00" step="0.01" min="0" /></div>
+              <div className="form-group"><label htmlFor="artwork_type">Type</label><select id="artwork_type" name="artwork_type"><option value="">Select type</option>{selectOptions.artwork_type.map((v) => <option key={v} value={v}>{capitalizeFirst(v)}</option>)}</select></div>
+              <div className="form-group"><label htmlFor="year_created">Year Created</label><input type="number" id="year_created" name="year_created" placeholder="2025" min="1900" max="2025" /></div>
+              <div className="form-group"><label htmlFor="medium">Medium</label><select id="medium" name="medium"><option value="">Select medium</option>{selectOptions.medium.map((v) => <option key={v} value={v}>{capitalizeFirst(v)}</option>)}</select></div>
+              <div className="form-group"><label htmlFor="dimensions">Dimensions</label><input type="text" id="dimensions" name="dimensions" placeholder="e.g. 24×36 inches" /></div>
+              <div className="form-group"><label htmlFor="style">Style</label><select id="style" name="style"><option value="">Select style</option>{selectOptions.style.map((v) => <option key={v} value={v}>{capitalizeFirst(v)}</option>)}</select></div>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea id="description" name="description" placeholder="Describe your artwork..." />
-            </div>
-
+            <div className="form-group"><label htmlFor="description">Description</label><textarea id="description" name="description" placeholder="Describe your artwork…" /></div>
             <div className="form-actions">
-              <button type="submit" disabled={submitting}>
-                {submitting ? 'Creating...' : 'Create Artwork'}
-              </button>
-              <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>
-                Cancel
-              </button>
+              <button type="submit" className="s-btn s-btn-primary" disabled={submitting}>{submitting ? 'Creating…' : 'Create Artwork'}</button>
+              <button type="button" className="s-btn s-btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             </div>
           </form>
         </div>
 
         <div className="section">
           <div className="section-title">My Artworks</div>
-
-          {listStatus.msg && (
-            <div className={`status-message ${listStatus.type}`}>{listStatus.msg}</div>
-          )}
-
+          {listStatus.msg && <div className={`status-message ${listStatus.type}`}>{listStatus.msg}</div>}
           {loading ? (
-            <div className="loading">Loading artworks...</div>
+            <div className="loading">Loading your artworks…</div>
           ) : artworks.length === 0 ? (
-            <div className="empty-state">
-              <h3>No artworks yet</h3>
-              <p>Click &quot;New Artwork&quot; to create your first piece</p>
-            </div>
+            <div className="empty-state"><h3>No artworks yet</h3><p>Click &quot;New Artwork&quot; to upload your first piece</p></div>
           ) : (
             <div className="artworks-grid">
               {artworks.map((artwork) => (
                 <div key={artwork.id} className="artwork-card">
-                  <div className={`artwork-image-wrap ${artwork.is_sold ? "sold" : ""}`}>
-                    <img
-                      src={`${API_BASE}/artwork/${artwork.id}/image`}
-                      alt={artwork.name}
-                      className="artwork-image"
-                    />
-
-                    {artwork.is_sold && (
-                  <div className="sold-overlay">
-                  <div className="sold-stamp">SOLD</div>
+                  <div className={`artwork-image-wrap ${artwork.is_sold ? 'sold' : ''}`}>
+                    <img src={`${API_BASE}/artwork/${artwork.id}/image`} alt={artwork.name} className="artwork-image" />
+                    {artwork.is_sold && <div className="sold-overlay"><div className="sold-stamp">SOLD</div></div>}
                   </div>
-                    )}
-                  </div>
-
-
                   <div className="artwork-details">
                     <div className="artwork-name">
                       {artwork.name}
-
-                      {/* ✅ SOLD badge */}
-                      {artwork.is_sold && (
-                        <span
-                          style={{
-                            marginLeft: '10px',
-                            padding: '4px 10px',
-                            borderRadius: '999px',
-                            fontSize: '12px',
-                            fontWeight: '700',
-                            background: '#ff4d4f',
-                            color: 'white',
-                          }}
-                        >
-                          SOLD
-                        </span>
-                      )}
+                      {artwork.is_sold && <span style={{ marginLeft: 8, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: '#ff4d4f', color: 'white' }}>SOLD</span>}
                     </div>
-
-                    {artwork.artist && <div className="artwork-info">🎨 {artwork.artist}</div>}
-                    {artwork.artwork_type && (
-                      <div className="artwork-info">📦 {capitalizeFirst(artwork.artwork_type)}</div>
-                    )}
-                    {artwork.year_created && <div className="artwork-info">📅 {artwork.year_created}</div>}
-                    {artwork.dimensions && <div className="artwork-info">📏 {artwork.dimensions}</div>}
-                    {artwork.price != null && (
-                      <div className="artwork-price">${Number(artwork.price).toFixed(2)}</div>
-                    )}
-
+                    {artwork.artist       && <div className="artwork-info">🎨 {artwork.artist}</div>}
+                    {artwork.artwork_type  && <div className="artwork-info">📦 {capitalizeFirst(artwork.artwork_type)}</div>}
+                    {artwork.year_created  && <div className="artwork-info">📅 {artwork.year_created}</div>}
+                    {artwork.dimensions    && <div className="artwork-info">📏 {artwork.dimensions}</div>}
+                    {artwork.price != null && <div className="artwork-price">${Number(artwork.price).toFixed(2)}</div>}
                     <div className="artwork-actions">
-                    <button
-  type="button"
-  className="btn-secondary btn-small"
-  onClick={() => openEdit(artwork)}
-  disabled={artwork.is_sold}
-  title={artwork.is_sold ? "Sold artworks cannot be edited" : "Edit"}
->
-  Edit
-</button>
-
-<button
-  type="button"
-  className="btn-danger btn-small"
-  onClick={() => handleDelete(artwork.id, artwork.name, artwork.is_sold)}
-  disabled={artwork.is_sold}
-  title={artwork.is_sold ? "Sold artworks cannot be deleted" : "Delete"}
->
-  Delete
-</button>
-
+                      <button type="button" className="s-btn s-btn-secondary s-btn-sm" onClick={() => openEdit(artwork)} disabled={artwork.is_sold} title={artwork.is_sold ? 'Sold artworks cannot be edited' : 'Edit'}>Edit</button>
+                      <button type="button" className="s-btn s-btn-danger s-btn-sm" onClick={() => handleDelete(artwork.id, artwork.name, artwork.is_sold)} disabled={artwork.is_sold} title={artwork.is_sold ? 'Sold artworks cannot be deleted' : 'Delete'}>Delete</button>
                     </div>
-
-                    {/* ✅ Sold message */}
-                    {artwork.is_sold && (
-                      <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: '600', color: '#ff4d4f' }}>
-                        ✅ This artwork has been sold
-                      </div>
-                    )}
+                    {artwork.is_sold && <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: '#ff4d4f' }}>✅ This artwork has been sold</div>}
                   </div>
                 </div>
               ))}
@@ -400,86 +216,27 @@ export default function Seller() {
               <h2 className="modal-title">Edit Artwork</h2>
               <button type="button" className="close-modal" onClick={closeEdit}>&times;</button>
             </div>
-
-            {editStatus.msg && (
-              <div className={`status-message ${editStatus.type}`}>{editStatus.msg}</div>
-            )}
-
+            {editStatus.msg && <div className={`status-message ${editStatus.type}`}>{editStatus.msg}</div>}
             <form onSubmit={handleUpdate}>
               <div className="form-grid">
-                <div className="form-group">
-                  <label htmlFor="editName">Artwork Name *</label>
-                  <input type="text" id="editName" name="editName" defaultValue={editModal.name} required />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editArtist">Artist</label>
-                  <input type="text" id="editArtist" name="editArtist" defaultValue={editModal.artist} />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editPrice">Price ($)</label>
-                  <input type="number" id="editPrice" name="editPrice" step="0.01" min="0" defaultValue={editModal.price} />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editArtworkType">Type</label>
-                  <select id="editArtworkType" name="editArtworkType" defaultValue={editModal.artwork_type}>
-                    <option value="">Select type</option>
-                    {selectOptions.artwork_type.filter(Boolean).map((v) => (
-                      <option key={v} value={v}>{capitalizeFirst(v)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editYearCreated">Year Created</label>
-                  <input type="number" id="editYearCreated" name="editYearCreated" min="1900" max="2025" defaultValue={editModal.year_created} />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editMedium">Medium</label>
-                  <select id="editMedium" name="editMedium" defaultValue={editModal.medium}>
-                    <option value="">Select medium</option>
-                    {selectOptions.medium.filter(Boolean).map((v) => (
-                      <option key={v} value={v}>{capitalizeFirst(v)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editDimensions">Dimensions</label>
-                  <input type="text" id="editDimensions" name="editDimensions" defaultValue={editModal.dimensions} />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="editStyle">Style</label>
-                  <select id="editStyle" name="editStyle" defaultValue={editModal.style}>
-                    <option value="">Select style</option>
-                    {selectOptions.style.filter(Boolean).map((v) => (
-                      <option key={v} value={v}>{capitalizeFirst(v)}</option>
-                    ))}
-                  </select>
-                </div>
+                <div className="form-group"><label htmlFor="editName">Artwork Name *</label><input type="text" id="editName" name="editName" defaultValue={editModal.name} required /></div>
+                <div className="form-group"><label htmlFor="editArtist">Artist</label><input type="text" id="editArtist" name="editArtist" defaultValue={editModal.artist} /></div>
+                <div className="form-group"><label htmlFor="editPrice">Price ($)</label><input type="number" id="editPrice" name="editPrice" step="0.01" min="0" defaultValue={editModal.price} /></div>
+                <div className="form-group"><label htmlFor="editArtworkType">Type</label><select id="editArtworkType" name="editArtworkType" defaultValue={editModal.artwork_type}><option value="">Select type</option>{selectOptions.artwork_type.map((v) => <option key={v} value={v}>{capitalizeFirst(v)}</option>)}</select></div>
+                <div className="form-group"><label htmlFor="editYearCreated">Year Created</label><input type="number" id="editYearCreated" name="editYearCreated" min="1900" max="2025" defaultValue={editModal.year_created} /></div>
+                <div className="form-group"><label htmlFor="editMedium">Medium</label><select id="editMedium" name="editMedium" defaultValue={editModal.medium}><option value="">Select medium</option>{selectOptions.medium.map((v) => <option key={v} value={v}>{capitalizeFirst(v)}</option>)}</select></div>
+                <div className="form-group"><label htmlFor="editDimensions">Dimensions</label><input type="text" id="editDimensions" name="editDimensions" defaultValue={editModal.dimensions} /></div>
+                <div className="form-group"><label htmlFor="editStyle">Style</label><select id="editStyle" name="editStyle" defaultValue={editModal.style}><option value="">Select style</option>{selectOptions.style.map((v) => <option key={v} value={v}>{capitalizeFirst(v)}</option>)}</select></div>
               </div>
-
-              <div className="form-group">
-                <label htmlFor="editDescription">Description</label>
-                <textarea id="editDescription" name="editDescription" defaultValue={editModal.description} />
-              </div>
-
+              <div className="form-group"><label htmlFor="editDescription">Description</label><textarea id="editDescription" name="editDescription" defaultValue={editModal.description} /></div>
               <div className="form-actions">
-                <button type="submit" disabled={submitting}>
-                  {submitting ? 'Updating...' : 'Update Artwork'}
-                </button>
-                <button type="button" className="btn-secondary" onClick={closeEdit}>
-                  Cancel
-                </button>
+                <button type="submit" className="s-btn s-btn-primary" disabled={submitting}>{submitting ? 'Updating…' : 'Update Artwork'}</button>
+                <button type="button" className="s-btn s-btn-secondary" onClick={closeEdit}>Cancel</button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

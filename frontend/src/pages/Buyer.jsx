@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import SharedHeader from '@/components/ui/sharedHeader';
+import '../css/sharedHeader.css';
 import '../css/Buyer.css';
 
 const API_BASE = '';
@@ -21,25 +23,18 @@ export default function Buyer() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [addedItem, setAddedItem] = useState(null);
 
-  // ✅ load artworks (and hide sold ones)
   const loadArtworks = () => {
     setLoading(true);
     setError('');
-
     const url = `${API_BASE}/artworks`.replace(/\/+/, '/') || '/artworks';
-
     fetch(url, { credentials: 'include' })
       .then(async (res) => {
         const text = await res.text();
         if (!res.ok) throw new Error(text || `Failed to load artworks (${res.status})`);
-        try {
-          return text ? JSON.parse(text) : [];
-        } catch {
-          throw new Error('Invalid response from server');
-        }
+        try { return text ? JSON.parse(text) : []; }
+        catch { throw new Error('Invalid response from server'); }
       })
       .then((data) => {
-        // ✅ hide sold artworks
         const clean = Array.isArray(data) ? data.filter((a) => !a.is_sold) : [];
         setArtworks(clean);
         setFilteredArtworks(clean);
@@ -51,43 +46,29 @@ export default function Buyer() {
       });
   };
 
-  useEffect(() => {
-    loadArtworks();
-  }, []);
+  useEffect(() => { loadArtworks(); }, []);
 
   useEffect(() => {
     let filtered = [...artworks];
-
     if (searchTerm) {
-      filtered = filtered.filter(
-        (a) =>
-          a.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          a.artist?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter((a) =>
+        a.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.artist?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
     if (typeFilter) filtered = filtered.filter((a) => a.artwork_type === typeFilter);
-
-    if (priceFilter === 'low') filtered = filtered.filter((a) => a.price != null && a.price < 500);
-    if (priceFilter === 'medium')
-      filtered = filtered.filter((a) => a.price != null && a.price >= 500 && a.price < 2000);
-    if (priceFilter === 'high') filtered = filtered.filter((a) => a.price != null && a.price >= 2000);
-
+    if (priceFilter === 'low')    filtered = filtered.filter((a) => a.price != null && a.price < 500);
+    if (priceFilter === 'medium') filtered = filtered.filter((a) => a.price != null && a.price >= 500 && a.price < 2000);
+    if (priceFilter === 'high')   filtered = filtered.filter((a) => a.price != null && a.price >= 2000);
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'name':
-          return (a.name || '').localeCompare(b.name || '');
-        case 'price-low':
-          return (a.price || 0) - (b.price || 0);
-        case 'price-high':
-          return (b.price || 0) - (a.price || 0);
-        case 'artist':
-          return (a.artist || '').localeCompare(b.artist || '');
-        default:
-          return 0;
+        case 'name':       return (a.name || '').localeCompare(b.name || '');
+        case 'price-low':  return (a.price || 0) - (b.price || 0);
+        case 'price-high': return (b.price || 0) - (a.price || 0);
+        case 'artist':     return (a.artist || '').localeCompare(b.artist || '');
+        default:           return 0;
       }
     });
-
     setFilteredArtworks(filtered);
     setCurrentPage(1);
   }, [artworks, searchTerm, typeFilter, priceFilter, sortBy]);
@@ -95,33 +76,30 @@ export default function Buyer() {
   const uniqueTypes = [...new Set(artworks.map((a) => a.artwork_type).filter(Boolean))];
 
   const handleViewAR = (artworkId) => {
-    const arUrl = `${API_BASE}/ar-viewer?id=${artworkId}`;
-    window.open(arUrl, '_blank', 'width=400,height=700,menubar=no,toolbar=no,location=no,status=no,scrollbars=no');
+    window.open(
+      `${API_BASE}/ar-viewer?id=${artworkId}`,
+      '_blank',
+      'width=400,height=700,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
+    );
   };
 
   const addToCart = (artwork) => {
     const existing = cart.find((item) => item.id === artwork.id);
-
     if (existing) {
-      setCart(cart.map((item) => (item.id === artwork.id ? { ...item, quantity: item.quantity + 1 } : item)));
+      setCart(cart.map((item) => item.id === artwork.id ? { ...item, quantity: item.quantity + 1 } : item));
     } else {
       setCart([...cart, { ...artwork, quantity: 1 }]);
     }
-
     setAddedItem(artwork);
     setShowConfirmation(true);
-
-    setTimeout(() => {
-      setShowConfirmation(false);
-      setAddedItem(null);
-    }, 3000);
+    setTimeout(() => { setShowConfirmation(false); setAddedItem(null); }, 3000);
   };
 
   const removeFromCart = (artworkId) => setCart(cart.filter((item) => item.id !== artworkId));
 
   const updateQuantity = (artworkId, newQuantity) => {
     if (newQuantity <= 0) removeFromCart(artworkId);
-    else setCart(cart.map((item) => (item.id === artworkId ? { ...item, quantity: newQuantity } : item)));
+    else setCart(cart.map((item) => item.id === artworkId ? { ...item, quantity: newQuantity } : item));
   };
 
   const getTotalPrice = () => cart.reduce((t, item) => t + (item.price || 0) * item.quantity, 0);
@@ -130,59 +108,36 @@ export default function Buyer() {
   const totalPages = Math.ceil(filteredArtworks.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentArtworks = filteredArtworks.slice(startIndex, startIndex + itemsPerPage);
-
   const imgUrl = (id) => `${API_BASE}/artwork/${id}/image`;
 
-  // ✅ RAZORPAY CHECKOUT (1 artwork at a time)
   const handleCheckout = async () => {
     try {
-      if (cart.length === 0) {
-        alert("Cart is empty!");
-        return;
-      }
-
+      if (cart.length === 0) { alert('Cart is empty!'); return; }
       const artwork = cart[0];
+      if (!artwork.price) { alert('This artwork has no price, cannot checkout.'); return; }
 
-      if (!artwork.price) {
-        alert("This artwork has no price, cannot checkout.");
-        return;
-      }
-
-      // ✅ Step 1: Create order
       const res = await fetch(`${API_BASE}/api/create-order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          artwork_id: artwork.id,
-        }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ artwork_id: artwork.id }),
       });
-
       const orderData = await res.json().catch(() => ({}));
-
-      if (!res.ok || !orderData.success) {
-        alert(orderData.error || "Failed to create order");
-        return;
-      }
-
-      // expected response:
-      // { success: true, order_id, amount, currency, key_id }
+      if (!res.ok || !orderData.success) { alert(orderData.error || 'Failed to create order'); return; }
 
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "ArtVerse",
+        name: 'ArtVerse',
         description: `Payment for ${artwork.name}`,
         order_id: orderData.order_id,
-
         handler: async function (response) {
           try {
-            // ✅ Step 2: Verify payment
             const verifyRes = await fetch(`${API_BASE}/api/verify-payment`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -190,87 +145,60 @@ export default function Buyer() {
                 artwork_id: artwork.id,
               }),
             });
-
             const verifyData = await verifyRes.json().catch(() => ({}));
-
             if (!verifyRes.ok || !verifyData.success) {
-              alert(verifyData.error || "Payment verification failed");
+              alert(verifyData.error || 'Payment verification failed');
               return;
             }
-
-            alert("✅ Payment successful! Artwork marked as SOLD.");
-
-            // ✅ remove from cart
+            alert('✅ Payment successful! Artwork marked as SOLD.');
             setCart((prev) => prev.filter((i) => i.id !== artwork.id));
-
             setShowCart(false);
-
-            // ✅ refresh artworks so sold disappears
             loadArtworks();
           } catch (err) {
             console.error(err);
-            alert("Payment succeeded but verification failed.");
+            alert('Payment succeeded but verification failed.');
           }
         },
-
-        theme: { color: "#3399cc" },
+        theme: { color: '#d3b56a' },
       };
 
-      if (!window.Razorpay) {
-        alert("Razorpay SDK not loaded. Please refresh the page.");
-        return;
-      }
-
+      if (!window.Razorpay) { alert('Razorpay SDK not loaded. Please refresh the page.'); return; }
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (err) {
       console.error(err);
-      alert(err.message || "Something went wrong");
+      alert(err.message || 'Something went wrong');
     }
   };
 
   return (
-    <>
-      <header className="buyer-header">
-        <nav className="buyer-nav">
-          <div className="logo">ArtVerse</div>
-          <div className="nav-links">
-            <button type="button" className="cart-btn" onClick={() => setShowCart(true)}>
-              🛒 Cart ({getTotalItems()})
-            </button>
-            <Link className="nav-link" to="/select-role">Switch Role</Link>
-            <a className="nav-link" href={`${API_BASE}/logout`}>Logout</a>
-          </div>
-        </nav>
-      </header>
+    <div className="buyer-page">
 
-      <div className="buyer-container">
-        <div className="hero">
-          <h1>Brushstrokes Made For You</h1>
-          <p>See it in your space first, commit to it later.</p>
+      <SharedHeader
+        page="buyer"
+        cartCount={getTotalItems()}
+        onCartClick={() => setShowCart(true)}
+        onSearch={setSearchTerm}
+        searchValue={searchTerm}
+      />
+
+      <div className="buyer-body">
+
+        <div className="buyer-title-row">
+          <h1>Marketplace</h1>
+          <span className="buyer-count">
+            {!loading && !error && `${filteredArtworks.length} artworks`}
+          </span>
         </div>
 
         {!loading && !error && (
           <div className="filters">
             <div className="filter-row">
               <div className="filter-group">
-                <label className="filter-label">Search</label>
-                <input
-                  type="text"
-                  className="filter-input"
-                  placeholder="Search by name or artist..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-
-              <div className="filter-group">
                 <label className="filter-label">Type</label>
                 <select className="filter-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
                   <option value="">All Types</option>
-                  {uniqueTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
+                  {uniqueTypes.map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </div>
 
@@ -279,8 +207,8 @@ export default function Buyer() {
                 <select className="filter-select" value={priceFilter} onChange={(e) => setPriceFilter(e.target.value)}>
                   <option value="">All Prices</option>
                   <option value="low">Under $500</option>
-                  <option value="medium">$500 - $2000</option>
-                  <option value="high">$2000+</option>
+                  <option value="medium">$500 – $2,000</option>
+                  <option value="high">$2,000+</option>
                 </select>
               </div>
 
@@ -288,49 +216,31 @@ export default function Buyer() {
                 <div className="filter-group">
                   <label className="filter-label">Sort by</label>
                   <select className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                    <option value="name">Name A-Z</option>
-                    <option value="artist">Artist A-Z</option>
+                    <option value="name">Name A–Z</option>
+                    <option value="artist">Artist A–Z</option>
                     <option value="price-low">Price: Low to High</option>
                     <option value="price-high">Price: High to Low</option>
                   </select>
                 </div>
 
                 <div className="view-toggle">
-                  <button
-                    type="button"
-                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                    onClick={() => setViewMode('grid')}
-                    title="Grid View"
-                  >
-                    ⊞
-                  </button>
-                  <button
-                    type="button"
-                    className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => setViewMode('list')}
-                    title="List View"
-                  >
-                    ☰
-                  </button>
+                  <button type="button" className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} title="Grid View">⊞</button>
+                  <button type="button" className={`view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="List View">☰</button>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {loading && <div className="loading">✨ Loading amazing artworks...</div>}
-        {error && <div className="error">❌ Error: {error}</div>}
+        {loading && <div className="loading">✨ Loading artworks…</div>}
+        {error   && <div className="error">❌ {error}</div>}
 
         {!loading && !error && filteredArtworks.length === 0 && (
           <div className="empty">
-            {artworks.length === 0 ? (
-              <div>
-                <p>🎨 No artworks yet in our gallery</p>
-                <p>Be the first to <Link className="nav-link" to="/seller">upload an artwork</Link>!</p>
-              </div>
-            ) : (
-              <p>🔍 No artworks match your search criteria</p>
-            )}
+            {artworks.length === 0
+              ? <p>🎨 No artworks yet — <Link to="/seller">be the first to upload</Link>!</p>
+              : <p>🔍 No artworks match your filters</p>
+            }
           </div>
         )}
 
@@ -340,26 +250,18 @@ export default function Buyer() {
               {currentArtworks.map((artwork) => (
                 <div key={artwork.id} className="buyer-card">
                   <img src={imgUrl(artwork.id)} alt={artwork.name} className="card-image" />
-
                   <div className="card-content">
                     <h3 className="card-title">{artwork.name}</h3>
-
                     <div className="card-meta">
                       <span className="card-artist">{artwork.artist || 'Unknown Artist'}</span>
                       {artwork.artwork_type && <span className="card-type">{artwork.artwork_type}</span>}
                     </div>
-
                     <div className="card-price">
                       {artwork.price ? `$${artwork.price.toFixed(2)}` : 'Price on request'}
                     </div>
-
                     <div className="card-actions">
                       <Link className="btn" to={`/artwork/${artwork.id}`}>Details</Link>
-
-                      <button type="button" className="btn" onClick={() => handleViewAR(artwork.id)}>
-                        🥽 View in AR
-                      </button>
-
+                      <button type="button" className="btn" onClick={() => handleViewAR(artwork.id)}>🥽 AR</button>
                       <button
                         type="button"
                         className="btn btn-primary"
@@ -376,35 +278,18 @@ export default function Buyer() {
 
             {totalPages > 1 && (
               <div className="pagination">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  ← Previous
-                </button>
-
-                <div className="page-info">
-                  Page {currentPage} of {totalPages}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next →
-                </button>
+                <button type="button" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>← Previous</button>
+                <div className="page-info">Page {currentPage} of {totalPages}</div>
+                <button type="button" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next →</button>
               </div>
             )}
 
-            <div className="stats">
-              Showing {filteredArtworks.length} of {artworks.length} artworks
-            </div>
+            <div className="stats">Showing {filteredArtworks.length} of {artworks.length} artworks</div>
           </>
         )}
       </div>
 
+      {/* ── Cart Modal ── */}
       {showCart && (
         <div className="cart-modal">
           <div className="cart-overlay" onClick={() => setShowCart(false)} aria-hidden="true" />
@@ -413,7 +298,6 @@ export default function Buyer() {
               <h2>🛒 Shopping Cart</h2>
               <button type="button" className="close-btn" onClick={() => setShowCart(false)}>✕</button>
             </div>
-
             <div className="cart-body">
               {cart.length === 0 ? (
                 <div className="empty-cart">
@@ -426,13 +310,11 @@ export default function Buyer() {
                     {cart.map((item) => (
                       <div key={item.id} className="cart-item">
                         <img src={imgUrl(item.id)} alt={item.name} className="cart-item-image" />
-
                         <div className="cart-item-details">
                           <h4>{item.name}</h4>
                           <p className="cart-item-artist">{item.artist || 'Unknown Artist'}</p>
                           <p className="cart-item-price">${(item.price || 0).toFixed(2)}</p>
                         </div>
-
                         <div className="cart-item-controls">
                           <div className="quantity-controls">
                             <button type="button" className="qty-btn" onClick={() => updateQuantity(item.id, item.quantity - 1)}>−</button>
@@ -444,22 +326,14 @@ export default function Buyer() {
                       </div>
                     ))}
                   </div>
-
                   <div className="cart-summary">
                     <div className="total"><strong>Total: ${getTotalPrice().toFixed(2)}</strong></div>
-
                     <div className="cart-actions">
-                      <button type="button" className="btn btn-secondary" onClick={() => setCart([])}>
-                        Clear Cart
-                      </button>
-
-                      <button type="button" className="btn btn-primary" onClick={handleCheckout}>
-                        Proceed to Checkout
-                      </button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setCart([])}>Clear Cart</button>
+                      <button type="button" className="btn btn-primary" onClick={handleCheckout}>Proceed to Checkout</button>
                     </div>
-
-                    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.7 }}>
-                      ⚠️ Note: For now checkout works for 1 artwork at a time.
+                    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.6 }}>
+                      ⚠️ Checkout works for 1 artwork at a time.
                     </div>
                   </div>
                 </>
@@ -469,14 +343,15 @@ export default function Buyer() {
         </div>
       )}
 
+      {/* ── Confirmation Toast ── */}
       {showConfirmation && addedItem && (
         <div className="confirmation-popup">
           <div className="tick-container"><div className="tick-mark" /></div>
           <div className="confirmation-text">
-            <span className="confirmation-item">&quot;{addedItem.name}&quot;</span> has been added to your cart!
+            <span className="confirmation-item">&quot;{addedItem.name}&quot;</span> added to cart!
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
