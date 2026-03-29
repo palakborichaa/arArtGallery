@@ -7,7 +7,7 @@
 }
 
 .ar-header {
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   padding: 14px 20px;
   display: flex;
@@ -25,19 +25,17 @@
 }
 
 .ar-header .close-btn {
-  background: var(--text);
-  color: white;
+  
+  color: rgb(255, 255, 255);
   border: none;
   padding: 8px 16px;
-  border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .ar-header .close-btn:hover {
   background: #2b2b2b;
-  transform: translateY(-1px);
+  
 }
 
 .ar-container {
@@ -51,7 +49,7 @@
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(8px);
   border-radius: 16px;
-  padding: 20px;
+  padding: 10px;
   margin-bottom: 20px;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--border);
@@ -60,21 +58,21 @@
 .artwork-title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--text);
-  margin-bottom: 8px;
+  color: rgb(66, 66, 66);
+  margin-bottom: 2px;
   font-family: 'Playfair Display', serif;
 }
 
 .artwork-artist {
   color: #666;
   font-style: italic;
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 
 .artwork-price {
   font-size: 20px;
   font-weight: 700;
-  color: #2a4f39;
+  color: #00702d;
 }
 
 .viewer-container {
@@ -85,7 +83,6 @@
   backdrop-filter: blur(8px);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--border);
 }
 
@@ -105,8 +102,8 @@
 
 .ar-button {
   width: 100%;
-  background: linear-gradient(135deg, #ffd1bd, #d27b50);
-  color: white;
+  background-color: #e8ca7a;
+  color: rgb(66, 65, 65);
   border: none;
   padding: 16px 24px;
   border-radius: 999px;
@@ -115,7 +112,7 @@
   cursor: pointer;
   transition: transform 0.2s ease, filter 0.2s ease;
   margin-bottom: 12px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  
 }
 
 .ar-button:hover:not(:disabled) {

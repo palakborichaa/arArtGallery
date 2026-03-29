@@ -9,9 +9,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  server: {
+ server: {
     port: 5173,
-    historyApiFallback: true,  // ← fixes blank page on refresh
+    host: '0.0.0.0',  // keep this
+    allowedHosts: ['rachal-unperfidious-arnulfo.ngrok-free.dev'],
+    historyApiFallback: true,
     proxy: {
       '/api': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true },
       '/login': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true },
@@ -20,11 +22,11 @@ export default defineConfig({
       '/artworks': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true },
       '/artwork': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true },
       '/make-glb': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true },
-      '/seller/artworks': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true }, // ← only proxy the API sub-path
+      '/seller/artworks': { target: 'http://127.0.0.1:5000', changeOrigin: true, credentials: true },
     },
     hmr: {
       protocol: 'ws',
-      host: 'localhost',
+      host: 'rachal-unperfidious-arnulfo.ngrok-free.app',
       port: 5173,
     },
   },
